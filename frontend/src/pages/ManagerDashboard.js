@@ -272,4 +272,200 @@ export default function ManagerDashboard({ user, onLogout }) {
                 </div>
               ))}
             </div>
-            
+            <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <h3 className="h5 mb-1">Incidentes Recentes</h3>
+                <p className="text-muted small mb-4">Últimas atividades da equipa</p>
+                <div className="d-grid gap-3">
+                  {incidentsList.map((incident) => (
+                    <div className="admin-list-row" key={incident.id}>
+                      <div className="flex-grow-1">
+                        <div className="fw-medium">{incident.title}</div>
+                        <div className="small text-muted">{incident.assignee} • {incident.date}</div>
+                      </div>
+                      <span className="badge text-bg-secondary">{incident.status}</span>
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(incident)}>Ver Detalhes</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {activeMenu === 'team' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <h3 className="h5 mb-3">Membros da Equipa</h3>
+              <div className="d-grid gap-3">
+                {usersList.map((member) => (
+                  <div className="admin-list-row" key={member.id}>
+                    <div className="list-avatar manager">{member.name.charAt(0)}</div>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">{member.name}</div>
+                      <div className="small text-muted">{member.email}</div>
+                    </div>
+                    <div className="text-center small"><div className="text-muted">Concluídas</div><div className="fw-semibold">{member.ticketsOpen}</div></div>
+                    <div className="text-center small"><div className="text-muted">Ativas</div><div className="fw-semibold">{member.status}</div></div>
+                    <div className="text-center small"><div className="text-muted">Performance</div><div className="fw-semibold text-success">{member.department || 'N/A'}</div></div>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(member)}>Ver Perfil</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'users' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Gestão de Utilizadores</h3>
+                  <p className="text-muted small mb-0">Visualizar e gerir utilizadores do sistema</p>
+                </div>
+              </div>
+              <div className="d-grid gap-3">
+                {usersList.map((item) => (
+                  <div className="admin-list-row" key={item.id}>
+                    <div className="list-avatar user">{item.name.charAt(0)}</div>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">{item.name}</div>
+                      <div className="small text-muted">{item.email}</div>
+                      <div className="small text-muted">Departamento: {item.username}</div>
+                    </div>
+                    <div className="text-center small"><div className="text-muted">Tickets</div><div className="fw-semibold">{item.ticketsOpen}</div></div>
+                    <div className="small text-muted">{item.lastActive}</div>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(item)}>Ver Detalhes</button>
+                      <button className="btn btn-sm btn-outline-primary" onClick={() => openManageUser(item)}>Gerir</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'incidents' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Gestão de Incidentes</h3>
+                  <p className="text-muted small mb-0">Gerir e resolver incidentes de segurança</p>
+                </div>
+              </div>
+              <div className="d-grid gap-3">
+                {incidentsList.map((item) => (
+                  <div className="admin-list-row" key={item.id}>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">{item.title}</div>
+                      <div className="small text-muted">Atribuído a: {item.assignee} • {item.date}</div>
+                    </div>
+                    <span className="badge text-bg-secondary">{item.status}</span>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(item)}>Ver Detalhes</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'alerts' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <h3 className="h5 mb-3">Alertas</h3>
+              <div className="d-grid gap-3">
+                {alerts.map((alert) => (
+                  <div className="alert-row" key={alert.id}>
+                    <span className={`alert-dot ${alert.type === 'Crítico' ? 'critical' : alert.type === 'Aviso' ? 'warning' : 'info'}`} />
+                    <div className="flex-grow-1">
+                      <div>{alert.message}</div>
+                      <div className="small text-muted mt-1">{alert.source} • {alert.time}</div>
+                    </div>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(alert)}>Investigar</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'reports' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Relatórios da Equipa</h3>
+                  <p className="text-muted small mb-0">Exportação de dados da sua equipa e incidentes</p>
+                </div>
+              </div>
+              <div className="d-grid gap-3">
+                {[
+                  {
+                    tipo: 'mensal',
+                    nome: 'Relatório Mensal',
+                    descricao: `Resumo do mês — equipa, tickets criados e estado de resolução`,
+                    badge: 'HTML',
+                    badgeColor: 'text-bg-primary',
+                    btnLabel: 'Abrir',
+                  },
+                  {
+                    tipo: 'equipa',
+                    nome: 'Performance da Equipa',
+                    descricao: 'Lista de membros com emails, departamentos e contagem de tickets',
+                    badge: 'CSV',
+                    badgeColor: 'text-bg-success',
+                    btnLabel: 'Exportar',
+                  },
+                  {
+                    tipo: 'vulnerabilidades',
+                    nome: 'Análise de Vulnerabilidades',
+                    descricao: 'Tickets de prioridade Alta e Crítica da equipa',
+                    badge: 'CSV',
+                    badgeColor: 'text-bg-success',
+                    btnLabel: 'Exportar',
+                  },
+                  {
+                    tipo: 'resolvidos',
+                    nome: 'Incidentes Resolvidos',
+                    descricao: 'Histórico completo de tickets fechados pela equipa',
+                    badge: 'CSV',
+                    badgeColor: 'text-bg-success',
+                    btnLabel: 'Exportar',
+                  },
+                ].map(({ tipo, nome, descricao, badge, badgeColor, btnLabel }) => (
+                  <div className="settings-row" key={tipo}>
+                    <div>
+                      <div className="fw-medium">{nome}</div>
+                      <div className="small text-muted">{descricao}</div>
+                    </div>
+                    <div className="d-flex gap-2 align-items-center">
+                      <span className={`badge ${badgeColor}`}>{badge}</span>
+                      <button
+                        className="btn btn-outline-primary btn-sm"
+                        disabled={managerReportLoading === tipo}
+                        onClick={() => handleManagerReport(tipo)}
+                      >
+                        {managerReportLoading === tipo ? 'A gerar...' : btnLabel}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {usersList.length === 0 && (
+                <div className="alert alert-info mt-4 mb-0 small">
+                  Ainda não tem membros na equipa. Os relatórios CSV estarão vazios até adicionar utilizadores.
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'chat' ? <ManagerChatSection user={user} /> : null}
+      </DashboardLayout>
+    </>
+  );
+}
