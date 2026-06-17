@@ -127,3 +127,87 @@ export default function AdminDashboard({ user, onLogout }) {
 
   useEffect(() => {
     if (activeMenu !== 'monitoring') return;
+
+    const fetchMonitoring = async () => {
+      try {
+        setMonitoringError('');
+        const res = await api.get('/monitoring/status');
+        setMonitoringData(res.data.data);
+      } catch {
+        setMonitoringError('Não foi possível obter dados de monitorização.');
+      } finally {
+        setMonitoringLoading(false);
+      }
+    };
+
+    setMonitoringLoading(true);
+    fetchMonitoring();
+
+    if (!autoRefresh) return;
+    const interval = setInterval(fetchMonitoring, 30000);
+    return () => clearInterval(interval);
+  }, [activeMenu, autoRefresh]);
+
+  useEffect(() => {
+    if (activeMenu !== 'stats') return;
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const res = await api.get('/stats/summary');
+        setStatsData(res.data.data);
+      } catch {
+        setStatsData(null);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
+  }, [activeMenu]);
+
+  const handleExportReport = async (tipo) => {
+    setReportLoading(tipo);
+    try {
+      if (tipo === 'executivo') {
+        const res = await api.get('/reports/summary');
+        openExecutiveReport(res.data.data, res.data.generatedAt);
+        return;
+      }
+      if (tipo === 'utilizadores') {
+        const res = await api.get('/users');
+        const rows = (res.data.data || []).map((u) => [
+          u.id, u.name, u.username, u.email || '', u.phone || '', u.department || '', u.status, u.ticketsOpen,
+        ]);
+        exportCSV(['ID', 'Nome', 'Username', 'Email', 'Telefone', 'Departamento', 'Estado', 'Tickets Abertos'], rows, 'utilizadores.csv');
+        return;
+      }
+      if (tipo === 'gestores') {
+        const res = await api.get('/users/managers');
+        const rows = (res.data.data || []).map((m) => [
+          m.id, m.name, m.username, m.email || '', m.phone || '', m.department || '', m.team, m.status,
+        ]);
+        exportCSV(['ID', 'Nome', 'Username', 'Email', 'Telefone', 'Departamento', 'Equipa', 'Estado'], rows, 'gestores.csv');
+        return;
+      }
+      if (tipo === 'tickets') {
+        const res = await api.get('/tickets');
+        const rows = (res.data.data || []).map((t) => [
+          t.id, t.titulo, t.prioridade, t.estado, t.createdBy || '', t.assignedTo || '',
+          t.createdAt ? new Date(t.createdAt).toLocaleString('pt-PT') : '',
+        ]);
+        exportCSV(['ID', 'Título', 'Prioridade', 'Estado', 'Criado Por', 'Atribuído A', 'Data'], rows, 'tickets.csv');
+        return;
+      }
+      if (tipo === 'logs') {
+        const res = await api.get('/logs', { params: { limit: 500 } });
+        const rows = (res.data.data || []).map((l) => [
+          l.id_log, new Date(l.created_at).toLocaleString('pt-PT'), l.origem, l.tipo, l.actor_username || '', l.nivel, l.evento,
+        ]);
+        exportCSV(['ID', 'Data/Hora', 'Origem', 'Tipo', 'Utilizador', 'Nível', 'Evento'], rows, 'logs.csv');
+        return;
+      }
+    } catch (err) {
+      alert('Erro ao gerar relatório: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setReportLoading(null);
+    }
+  };
