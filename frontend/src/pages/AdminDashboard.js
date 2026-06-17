@@ -42,3 +42,88 @@ export default function AdminDashboard({ user, onLogout }) {
   const [passwordConfig, setPasswordConfig] = useState({ minLength: '8', requireUppercase: true, requireNumbers: true, expirationDays: '90' });
   const [backupConfig, setBackupConfig] = useState({ frequency: 'Diário', time: '02:00', retention: '30' });
   const [notificationConfig, setNotificationConfig] = useState({ email: true, sms: false, push: true });
+
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'monitoring', label: 'Monitorização' },
+    { id: 'tickets', label: 'Tickets' },
+    { id: 'stats', label: 'Estatísticas' },
+    { id: 'users', label: 'Clientes' },
+    { id: 'managers', label: 'Gestores' },
+    { id: 'alerts', label: 'Alertas' },
+    { id: 'logs', label: 'Logs' },
+    { id: 'reports', label: 'Relatórios' },
+    { id: 'chat', label: 'Chat' },
+    { id: 'settings', label: 'Configurações' },
+    { id: 'homepage', label: 'Página Principal' },
+  ];
+
+  const stats = useMemo(() => [
+    { title: 'Utilizadores Ativos', value: '1,284', change: '+12%', tone: 'text-success' },
+    { title: 'Ameaças Bloqueadas', value: '3,492', change: '-8%', tone: 'text-danger' },
+    { title: 'Alertas Críticos', value: String(alerts.filter((item) => item.type === 'Crítico').length), change: '+3', tone: 'text-success' },
+    { title: 'Taxa de Sucesso', value: '98.5%', change: '+2.1%', tone: 'text-success' },
+  ], [alerts]);
+
+  const loadUsers = async () => {
+    const response = await api.get('/users');
+    setUsers(response.data.data || []);
+  };
+
+  const loadManagers = async () => {
+    const response = await api.get('/users/managers');
+    setManagers(response.data.data || []);
+  };
+
+  const loadTickets = async () => {
+    const response = await api.get('/tickets');
+    setTickets(response.data.data || []);
+  };
+
+  useEffect(() => {
+    const fetchEmpresas = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/empresas');
+        setEmpresas(response.data.data || []);
+        setApiMessage('');
+      } catch (error) {
+        setApiMessage(error.response?.data?.message || 'Erro ao listar empresas.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmpresas();
+  }, []);
+
+  useEffect(() => {
+    const fetchSupportData = async () => {
+      try {
+        await Promise.all([loadUsers(), loadManagers(), loadTickets()]);
+      } catch (error) {
+        setApiMessage(error.response?.data?.message || 'Erro ao listar utilizadores.');
+      }
+    };
+
+    fetchSupportData();
+  }, []);
+
+  useEffect(() => {
+    if (activeMenu !== 'logs') return;
+    const fetchLogs = async () => {
+      try {
+        setLogsLoading(true);
+        const res = await api.get('/logs', { params: { tipo: logsFilter } });
+        setLogs(res.data.data || []);
+      } catch {
+        setLogs([]);
+      } finally {
+        setLogsLoading(false);
+      }
+    };
+    fetchLogs();
+  }, [activeMenu, logsFilter]);
+
+  useEffect(() => {
+    if (activeMenu !== 'monitoring') return;
