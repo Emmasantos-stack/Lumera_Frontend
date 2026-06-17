@@ -26,3 +26,30 @@ export default function LoginModal({ show, onClose, onLogin }) {
       setIsSubmitting(false);
     }
   };
+ if (!show) return null;
+
+  return (
+    <div className="modal d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">Iniciar Sessão</h5>
+            <button type="button" className="btn-close" onClick={onClose}></button>
+          </div>
+          <div className="modal-body">
+            <form onSubmit={handleSubmit}>
+              <label className="form-label">Nome de Utilizador</label>
+              <input className="form-control mb-3" value={username} onChange={(e) => setUsername(e.target.value)} required />
+              <label className="form-label">Senha</label>
+              <input type="password" className="form-control mb-3" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              {loginError ? <div className="alert alert-danger py-2">{loginError}</div> : null}
+              <button className="btn btn-primary w-100" type="submit" disabled={isSubmitting}>{isSubmitting ? 'A entrar...' : 'Entrar'}</button>
+            </form>
+            <div className="small text-muted mt-3">Administrador por defeito: admin / admin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
