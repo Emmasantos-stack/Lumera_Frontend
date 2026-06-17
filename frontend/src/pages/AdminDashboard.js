@@ -211,3 +211,30 @@ export default function AdminDashboard({ user, onLogout }) {
       setReportLoading(null);
     }
   };
+  
+  const validarNIF = (nif) => {
+    if (!/^\d{9}$/.test(nif)) return false;
+    if (nif[0] === '0') return false;
+    const pesos = [9, 8, 7, 6, 5, 4, 3, 2];
+    const soma = pesos.reduce((acc, peso, i) => acc + peso * parseInt(nif[i]), 0);
+    const resto = soma % 11;
+    const digito = resto < 2 ? 0 : 11 - resto;
+    return digito === parseInt(nif[8]);
+  };
+
+  const submitEmpresa = async (e) => {
+    e.preventDefault();
+    if (!form.nome.trim() || !form.nif.trim()) return;
+    if (!validarNIF(form.nif)) {
+      setApiMessage('NIF inválido. Deve ter 9 dígitos e ser um NIF português válido.');
+      return;
+    }
+    try {
+      await api.post('/empresas', { nome: form.nome.trim(), nif: form.nif.trim() });
+      setForm({ nome: '', nif: '' });
+      const response = await api.get('/empresas');
+      setEmpresas(response.data.data || []);
+    } catch (error) {
+      setApiMessage(error.response?.data?.message || 'Não foi possível criar empresa.');
+    }
+  };
