@@ -1278,3 +1278,399 @@ function AdminDashboard({ user, onLogout }) {
             ) : null}
           </div>
         ) : null}
+
+
+         {activeMenu === 'tickets' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <h3 className="h5 mb-1">Tickets dos Clientes</h3>
+              <p className="text-muted small mb-4">Todos os tickets abertos no sistema</p>
+              <div className="d-grid gap-3">
+                {tickets.map((ticket) => (
+                  <div className="admin-list-row" key={ticket.id}>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">#{ticket.id} - {ticket.title}</div>
+                      <div className="small text-muted">Cliente: {ticket.requester || 'N/A'} | Prioridade: {ticket.priority}</div>
+                    </div>
+                    <span className="badge text-bg-secondary">{ticket.status}</span>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(ticket)}>Ver Detalhes</button>
+                      {ticket.status !== 'Resolvido' ? (
+                        <button className="btn btn-sm btn-outline-success" onClick={() => resolveTicket(ticket.id)}>Marcar Resolvido</button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {activeMenu === 'stats' ? (
+          <div>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h3 className="h5 mb-0">Estatísticas do Sistema</h3>
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                disabled={statsLoading}
+                onClick={() => { setStatsLoading(true); api.get('/stats/summary').then(r => setStatsData(r.data.data)).catch(() => {}).finally(() => setStatsLoading(false)); }}
+              >
+                {statsLoading ? '...' : '↻ Atualizar'}
+              </button>
+            </div>
+
+            {statsLoading && !statsData ? (
+              <div className="text-center py-5 text-muted">A calcular estatísticas...</div>
+            ) : statsData ? (() => {
+              const totalTickets = statsData.ticketsPorEstado.reduce((s, r) => s + r.count, 0);
+              const totalPrioridade = statsData.ticketsPorPrioridade.reduce((s, r) => s + r.count, 0);
+              const totalUsers = statsData.utilizadoresPorClasse.reduce((s, r) => s + r.count, 0);
+              const maxTicketDia = Math.max(1, ...statsData.ticketsPorDia.map(r => r.total));
+              const maxLogDia = Math.max(1, ...statsData.logsPorDia.map(r => r.total));
+
+              const estadoCores = { 'Aberto': 'bg-danger', 'Em Curso': 'bg-warning', 'Fechado': 'bg-success' };
+              const prioridadeCores = { 'Baixa': 'bg-success', 'Média': 'bg-info', 'Alta': 'bg-warning', 'Crítica': 'bg-danger' };
+              const classeCores = { admin: 'bg-primary', manager: 'bg-info', user: 'bg-secondary' };
+              const classeLabels = { admin: 'Administradores', manager: 'Gestores', user: 'Utilizadores' };
+
+              return (
+                <>
+                  {/* KPI Cards */}
+                  <div className="row g-3 mb-4">
+                    {[
+                      { label: 'Total Utilizadores', value: statsData.kpis.totalUsers, sub: 'na plataforma', color: 'text-primary' },
+                      { label: 'Taxa de Resolução', value: `${statsData.kpis.taxaResolucao}%`, sub: 'tickets fechados', color: statsData.kpis.taxaResolucao >= 70 ? 'text-success' : 'text-warning' },
+                      { label: 'MTTR Médio', value: statsData.kpis.mttr || '—', sub: 'tempo de resolução', color: 'text-info' },
+                      { label: 'Falhas de Login Hoje', value: `${statsData.kpis.taxaFalhasLogin}%`, sub: `${statsData.kpis.loginsFalhadosHoje} de ${statsData.kpis.loginsHoje + statsData.kpis.loginsFalhadosHoje} tentativas`, color: statsData.kpis.taxaFalhasLogin > 20 ? 'text-danger' : 'text-success' },
+                    ].map(({ label, value, sub, color }) => (
+                      <div className="col-md-6 col-xl-3" key={label}>
+                        <div className="card shadow-sm border-0 h-100">
+                          <div className="card-body">
+                            <div className="text-muted small mb-1">{label}</div>
+                            <div className={`fs-2 fw-bold ${color}`}>{value}</div>
+                            <div className="text-muted small mt-1">{sub}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="row g-3 mb-3">
+                    {/* Tickets por Estado */}
+                    <div className="col-lg-4">
+                      <div className="card shadow-sm border-0 h-100">
+                        <div className="card-body">
+                          <h6 className="fw-semibold mb-3">Tickets por Estado</h6>
+                          {totalTickets === 0 ? <p className="text-muted small">Sem tickets.</p> : (
+                            <div className="d-grid gap-3">
+                              {statsData.ticketsPorEstado.map(({ estado, count }) => (
+                                <div key={estado}>
+                                  <div className="d-flex justify-content-between small mb-1">
+                                    <span>{estado}</span>
+                                    <span className="fw-semibold">{count} <span className="text-muted fw-normal">({Math.round(count / totalTickets * 100)}%)</span></span>
+                                  </div>
+                                  <div className="progress" style={{ height: 8 }}>
+                                    <div className={`progress-bar ${estadoCores[estado] || 'bg-secondary'}`} style={{ width: `${Math.round(count / totalTickets * 100)}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="text-muted small mt-3">Total: {totalTickets} tickets</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tickets por Prioridade */}
+                    <div className="col-lg-4">
+                      <div className="card shadow-sm border-0 h-100">
+                        <div className="card-body">
+                          <h6 className="fw-semibold mb-3">Tickets por Prioridade</h6>
+                          {totalPrioridade === 0 ? <p className="text-muted small">Sem tickets.</p> : (
+                            <div className="d-grid gap-3">
+                              {['Crítica', 'Alta', 'Média', 'Baixa'].map((pri) => {
+                                const item = statsData.ticketsPorPrioridade.find(r => r.prioridade === pri);
+                                const count = item?.count || 0;
+                                return (
+                                  <div key={pri}>
+                                    <div className="d-flex justify-content-between small mb-1">
+                                      <span>{pri}</span>
+                                      <span className="fw-semibold">{count} <span className="text-muted fw-normal">({Math.round(count / totalPrioridade * 100)}%)</span></span>
+                                    </div>
+                                    <div className="progress" style={{ height: 8 }}>
+                                      <div className={`progress-bar ${prioridadeCores[pri] || 'bg-secondary'}`} style={{ width: `${Math.round(count / totalPrioridade * 100)}%` }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Utilizadores por Tipo */}
+                    <div className="col-lg-4">
+                      <div className="card shadow-sm border-0 h-100">
+                        <div className="card-body">
+                          <h6 className="fw-semibold mb-3">Utilizadores por Tipo</h6>
+                          {totalUsers === 0 ? <p className="text-muted small">Sem utilizadores.</p> : (
+                            <div className="d-grid gap-3">
+                              {statsData.utilizadoresPorClasse.map(({ classe, count }) => (
+                                <div key={classe}>
+                                  <div className="d-flex justify-content-between small mb-1">
+                                    <span>{classeLabels[classe] || classe}</span>
+                                    <span className="fw-semibold">{count}</span>
+                                  </div>
+                                  <div className="progress" style={{ height: 8 }}>
+                                    <div className={`progress-bar ${classeCores[classe] || 'bg-secondary'}`} style={{ width: `${Math.round(count / totalUsers * 100)}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {statsData.utilizadoresPorDept.length > 0 && (
+                            <>
+                              <h6 className="fw-semibold mt-4 mb-2" style={{ fontSize: '0.8rem' }}>Por Departamento</h6>
+                              {statsData.utilizadoresPorDept.map(({ departamento, count }) => (
+                                <div key={departamento} className="d-flex justify-content-between small py-1 border-bottom">
+                                  <span className="text-truncate me-2">{departamento}</span>
+                                  <span className="fw-semibold text-nowrap">{count}</span>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="row g-3">
+                    {/* Tickets últimos 7 dias */}
+                    <div className="col-lg-6">
+                      <div className="card shadow-sm border-0 h-100">
+                        <div className="card-body">
+                          <h6 className="fw-semibold mb-3">Tickets criados — últimos 7 dias</h6>
+                          {statsData.ticketsPorDia.length === 0 ? (
+                            <p className="text-muted small">Sem atividade recente.</p>
+                          ) : (
+                            <div className="d-grid gap-2">
+                              {statsData.ticketsPorDia.map(({ dia, total }) => (
+                                <div key={dia} className="d-flex align-items-center gap-2">
+                                  <span className="text-muted small" style={{ width: 42, flexShrink: 0 }}>{dia}</span>
+                                  <div className="flex-grow-1 bg-light rounded" style={{ height: 20 }}>
+                                    <div
+                                      className="bg-primary rounded"
+                                      style={{ height: 20, width: `${Math.round(total / maxTicketDia * 100)}%`, minWidth: total > 0 ? 4 : 0, transition: 'width .3s' }}
+                                    />
+                                  </div>
+                                  <span className="fw-semibold small" style={{ width: 24, flexShrink: 0 }}>{total}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Atividade de login últimos 7 dias */}
+                    <div className="col-lg-6">
+                      <div className="card shadow-sm border-0 h-100">
+                        <div className="card-body">
+                          <h6 className="fw-semibold mb-3">Atividade de login — últimos 7 dias</h6>
+                          {statsData.logsPorDia.length === 0 ? (
+                            <p className="text-muted small">Sem atividade recente.</p>
+                          ) : (
+                            <div className="d-grid gap-2">
+                              {statsData.logsPorDia.map(({ dia, loginsOk, loginsFail }) => {
+                                const tot = loginsOk + loginsFail || 1;
+                                return (
+                                  <div key={dia} className="d-flex align-items-center gap-2">
+                                    <span className="text-muted small" style={{ width: 42, flexShrink: 0 }}>{dia}</span>
+                                    <div className="flex-grow-1 bg-light rounded overflow-hidden" style={{ height: 20 }}>
+                                      <div className="d-flex h-100" style={{ width: `${Math.round((loginsOk + loginsFail) / maxLogDia * 100)}%` }}>
+                                        <div className="bg-success" style={{ width: `${Math.round(loginsOk / tot * 100)}%` }} />
+                                        <div className="bg-danger" style={{ width: `${Math.round(loginsFail / tot * 100)}%` }} />
+                                      </div>
+                                    </div>
+                                    <span className="small text-nowrap" style={{ width: 60, flexShrink: 0 }}>
+                                      <span className="text-success">{loginsOk}</span>
+                                      <span className="text-muted"> / </span>
+                                      <span className="text-danger">{loginsFail}</span>
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                              <div className="d-flex gap-3 mt-1">
+                                <span className="small"><span className="text-success fw-semibold">■</span> Sucesso</span>
+                                <span className="small"><span className="text-danger fw-semibold">■</span> Falhado</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })() : <div className="text-center py-5 text-muted">Sem dados disponíveis.</div>}
+          </div>
+        ) : null}
+
+        {activeMenu === 'users' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Todos os Utilizadores</h3>
+                  <p className="text-muted small mb-0">Utilizadores ativos no sistema</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowAddUserDialog(true)}>Adicionar Utilizador</button>
+              </div>
+              <div className="d-grid gap-3">
+                {users.map((item) => (
+                  <div className="admin-list-row" key={item.id}>
+                    <div className="list-avatar user">{item.name.charAt(0)}</div>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">{item.name}</div>
+                      <div className="small text-muted">{item.email}</div>
+                      <div className="small text-muted">Utilizador: {item.username}</div>
+                      {item.managerId ? (
+                        <div className="small text-muted">Gestor: {managers.find((mgr) => mgr.id === item.managerId)?.name || 'ID ' + item.managerId}</div>
+                      ) : null}
+                    </div>
+                    <span className="badge text-bg-secondary">{item.role}</span>
+                    <div className="small text-muted">{item.lastActive}</div>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(item)}>Ver Detalhes</button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => deleteUser(item.id)}>Eliminar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'managers' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Todos os Gestores</h3>
+                  <p className="text-muted small mb-0">Gestores ativos e as suas equipas</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowAddManagerDialog(true)}>Adicionar Gestor</button>
+              </div>
+              <div className="d-grid gap-3">
+                {managers.map((item) => (
+                  <div className="admin-list-row" key={item.id}>
+                    <div className="list-avatar manager">{item.name.charAt(0)}</div>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">{item.name}</div>
+                      <div className="small text-muted">{item.email}</div>
+                      <div className="small text-muted">Utilizador: {item.username}</div>
+                      <div className="small text-muted">Departamento: {item.username}</div>
+                    </div>
+                    <div className="text-center small"><div className="text-muted">Equipa</div><div className="fw-semibold">{item.team}</div></div>
+                    <div className="text-center small"><div className="text-muted">Resolvidos</div><div className="fw-semibold">{item.incidentsResolved}</div></div>
+                    <div className="text-center small"><div className="text-muted">Performance</div><div className="fw-semibold text-success">{item.performance}%</div></div>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(item)}>Ver Detalhes</button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => deleteManager(item.id)}>Eliminar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'alerts' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <h3 className="h5 mb-1">Todos os Alertas</h3>
+              <p className="text-muted small mb-4">Histórico completo de alertas de segurança</p>
+              <div className="d-grid gap-3">
+                {alerts.map((alert) => (
+                  <div className="alert-row" key={alert.id}>
+                    <span className={`alert-dot ${alert.type === 'Crítico' ? 'critical' : alert.type === 'Aviso' ? 'warning' : 'info'}`}></span>
+                    <div className="flex-grow-1">
+                      <div>{alert.message}</div>
+                      <div className="small text-muted mt-1">{alert.source} • {alert.time}</div>
+                    </div>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(alert)}>Investigar</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'logs' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h3 className="h5 mb-0">Logs de Autenticação e Registo</h3>
+                <div className="d-flex gap-2">
+                  {[
+                    { value: 'todos', label: 'Todos' },
+                    { value: 'login', label: 'Login' },
+                    { value: 'user', label: 'Registo' },
+                    { value: 'manager', label: 'Gestores' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      className={`btn btn-sm ${logsFilter === value ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => setLogsFilter(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => setLogsFilter(logsFilter)}
+                    title="Atualizar"
+                  >
+                    &#x21bb;
+                  </button>
+                </div>
+              </div>
+              {logsLoading ? (
+                <div className="text-center py-4 text-muted">A carregar logs...</div>
+              ) : logs.length === 0 ? (
+                <div className="text-center py-4 text-muted">Sem logs para este filtro.</div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table align-middle table-hover">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Data/Hora</th>
+                        <th>Origem</th>
+                        <th>Utilizador</th>
+                        <th>Evento</th>
+                        <th>Nível</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.map((log) => {
+                        const nivelBadge = log.nivel === 'Info'
+                          ? 'text-bg-success'
+                          : log.nivel === 'Aviso'
+                          ? 'text-bg-warning'
+                          : 'text-bg-danger';
+                        const dt = new Date(log.created_at);
+                        const dateStr = dt.toLocaleDateString('pt-PT');
+                        const timeStr = dt.toLocaleTimeString('pt-PT');
+                        return (
+                          <tr key={log.id_log}>
+                            <td className="text-nowrap small">
+                              <div>{dateStr}</div>
+                              <div className="text-muted">{timeStr}</div>
+                            </td>
+                            <td><span className="badge text-bg-secondary">{log.origem}</span></td>
+                            <td className="small">{log.actor_username || '—'}</td>
+                            <td>{log.evento}</td>
+                            <td><span className={`badge ${nivelBadge}`}>{log.nivel}</span></td>
+                          </tr>
+                        );
+                      })}
