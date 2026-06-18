@@ -1,0 +1,474 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
+import logo from '../assets/logo-cyberbox.png';
+
+export const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+
+export const roleLabels = {
+  admin: 'Administrador',
+  manager: 'Gestor',
+  user: 'Utilizador',
+};
+
+export function SimpleDialog({ show, title, description, onClose, children, size = 'modal-dialog' }) {
+  if (!show) return null;
+
+  return (
+    <div className="modal d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+      <div className={`${size} modal-dialog-scrollable`}>
+        <div className="modal-content border-0 shadow-lg">
+          <div className="modal-header">
+            <div>
+              <h5 className="modal-title">{title}</h5>
+              {description ? <div className="small text-muted mt-1">{description}</div> : null}
+            </div>
+            <button type="button" className="btn-close" onClick={onClose}></button>
+          </div>
+          <div className="modal-body">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DetailModal({ item, title, onClose }) {
+  if (!item) return null;
+
+  return (
+    <SimpleDialog show={Boolean(item)} title={title} description={item.title || item.name} onClose={onClose}>
+      <div className="d-grid gap-3">
+        {Object.entries(item).map(([key, value]) => (
+          <div className="detail-box" key={key}>
+            <div className="small text-muted text-capitalize">{key}</div>
+            <div>{String(value)}</div>
+          </div>
+        ))}
+      </div>
+    </SimpleDialog>
+  );
+}
+
+export function ChatSection({ user }) {
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [chatError, setChatError] = useState('');
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const response = await api.get('/chat?room=global');
+        setMessages(response.data.data || []);
+        setChatError('');
+      } catch (error) {
+        setChatError(error.response?.data?.message || 'Nao foi possivel carregar o chat.');
+      }
+    };
+
+    loadMessages();
+  }, []);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+    try {
+      const response = await api.post('/chat', {
+        senderId: user.id,
+        senderName: user.nome,
+        senderRole: user.perfil,
+        room: 'global',
+        message: message.trim(),
+      });
+      setMessages((current) => [...current, response.data.data]);
+      setMessage('');
+      setChatError('');
+    } catch (error) {
+      setChatError(error.response?.data?.message || 'Nao foi possivel enviar a mensagem.');
+    }
+  };
+
+  return (
+    <div className="card shadow-sm border-0">
+      <div className="card-body">
+        <h3 className="h5 mb-3">Chat Operacional</h3>
+        {chatError ? <div className="alert alert-danger py-2">{chatError}</div> : null}
+        <div className="chat-box mb-3">
+          {messages.map((item) => (
+            <div className="chat-bubble" key={item.id}>
+              <div className="small text-muted mb-1">{item.author}</div>
+              <div>{item.text}</div>
+            </div>
+          ))}
+        </div>
+        <form className="d-flex gap-2" onSubmit={submit}>
+          <input className="form-control" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Escreva uma mensagem" />
+          <button className="btn btn-primary" type="submit">Enviar</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export function PrivateChatBox({ user, room, partnerName }) {
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [error, setError] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const loadMessages = useCallback(async () => {
+    try {
+      const response = await api.get(`/chat?room=${encodeURIComponent(room)}`);
+      setMessages(response.data.data || []);
+      setError('');
+    } catch {
+      setError('Não foi possível carregar as mensagens.');
+    }
+  }, [room]);
+
+  useEffect(() => {
+    setMessages([]);
+    loadMessages();
+    const interval = setInterval(loadMessages, 3000);
+    return () => clearInterval(interval);
+  }, [loadMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const send = async (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+    try {
+      const response = await api.post('/chat', {
+        senderId: user.id,
+        senderName: user.nome,
+        senderRole: user.perfil,
+        room,
+        message: message.trim(),
+      });
+      setMessages((prev) => [...prev, response.data.data]);
+      setMessage('');
+    } catch {
+      setError('Não foi possível enviar a mensagem.');
+    }
+  };
+
+  return (
+    <div className="card shadow-sm border-0">
+      <div className="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+        <div className="list-avatar manager" style={{ width: 32, height: 32, fontSize: '0.85rem', flexShrink: 0 }}>
+          {partnerName.charAt(0).toUpperCase()}
+        </div>
+        <strong>{partnerName}</strong>
+      </div>
+      <div className="card-body p-0 d-flex flex-column" style={{ height: 420 }}>
+        {error ? <div className="alert alert-danger m-2 py-1 small">{error}</div> : null}
+        <div className="flex-grow-1 overflow-auto p-3 d-flex flex-column gap-2">
+          {messages.length === 0 ? (
+            <div className="text-center text-muted small mt-4">Sem mensagens ainda. Inicie a conversa!</div>
+          ) : null}
+          {messages.map((msg) => {
+            const isOwn = msg.author === user.nome;
+            return (
+              <div key={msg.id} className={`d-flex ${isOwn ? 'justify-content-end' : 'justify-content-start'}`}>
+                <div style={{
+                  maxWidth: '70%',
+                  padding: '8px 12px',
+                  borderRadius: isOwn ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                  background: isOwn ? '#1b3f9a' : '#f1f5f9',
+                  color: isOwn ? '#fff' : '#1a1a2e',
+                }}>
+                  {!isOwn && <div style={{ fontSize: '0.72rem', opacity: 0.65, marginBottom: 2 }}>{msg.author}</div>}
+                  <div style={{ fontSize: '0.9rem' }}>{msg.text}</div>
+                  <div style={{ fontSize: '0.68rem', opacity: 0.55, marginTop: 3, textAlign: 'right' }}>
+                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
+        <div className="border-top p-2">
+          <form className="d-flex gap-2" onSubmit={send}>
+            <input
+              className="form-control form-control-sm"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Escreva uma mensagem..."
+            />
+            <button className="btn btn-primary btn-sm px-3" type="submit">Enviar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function UserChatSection({ user }) {
+  if (!user.managerId) {
+    return (
+      <div className="card shadow-sm border-0">
+        <div className="card-body text-center py-5 text-muted">
+          <p className="mb-1 fw-medium">Sem gestor atribuído</p>
+          <p className="small mb-0">Contacte o administrador para ser associado a um gestor.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h3 className="h5 mb-3">Chat com o Gestor</h3>
+      <PrivateChatBox
+        user={user}
+        room={`user_${user.id}_manager_${user.managerId}`}
+        partnerName="Gestor"
+      />
+    </div>
+  );
+}
+
+export function ManagerChatSection({ user }) {
+  const [clients, setClients] = useState([]);
+  const [selectedConv, setSelectedConv] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.get(`/users?managerId=${user.id}`);
+        setClients(res.data.data || []);
+      } catch {
+        // silently fail
+      }
+    };
+    load();
+  }, [user.id]);
+
+  const conversations = [
+    { room: `admin_manager_${user.id}`, name: 'Administrador', avatar: 'admin-avatar' },
+    ...clients.map((c) => ({ room: `user_${c.id}_manager_${user.id}`, name: c.name, avatar: 'list-avatar user' })),
+  ];
+
+  if (selectedConv) {
+    return (
+      <div>
+        <button className="btn btn-outline-secondary btn-sm mb-3" onClick={() => setSelectedConv(null)}>
+          ← Voltar às conversas
+        </button>
+        <PrivateChatBox user={user} room={selectedConv.room} partnerName={selectedConv.name} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="card shadow-sm border-0">
+      <div className="card-body">
+        <h3 className="h5 mb-3">Conversas</h3>
+        {conversations.length === 0 ? (
+          <p className="text-muted small">Sem conversas disponíveis.</p>
+        ) : (
+          <div className="d-grid gap-2">
+            {conversations.map((conv) => (
+              <button
+                key={conv.room}
+                className="btn btn-outline-secondary text-start d-flex align-items-center gap-3 py-3"
+                onClick={() => setSelectedConv(conv)}
+              >
+                <div className={conv.avatar} style={{ width: 36, height: 36, fontSize: '0.9rem', flexShrink: 0 }}>
+                  {conv.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="fw-medium">{conv.name}</div>
+                  <div className="small text-muted">Clique para abrir conversa</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function AdminChatSection({ user, managers }) {
+  const [selectedManager, setSelectedManager] = useState(null);
+
+  if (selectedManager) {
+    return (
+      <div>
+        <button className="btn btn-outline-secondary btn-sm mb-3" onClick={() => setSelectedManager(null)}>
+          ← Voltar às conversas
+        </button>
+        <PrivateChatBox
+          user={user}
+          room={`admin_manager_${selectedManager.id}`}
+          partnerName={selectedManager.name}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="card shadow-sm border-0">
+      <div className="card-body">
+        <h3 className="h5 mb-3">Chat com Gestores</h3>
+        {managers.length === 0 ? (
+          <p className="text-muted small">Sem gestores registados. Adicione um gestor para iniciar uma conversa.</p>
+        ) : (
+          <div className="d-grid gap-2">
+            {managers.map((mgr) => (
+              <button
+                key={mgr.id}
+                className="btn btn-outline-secondary text-start d-flex align-items-center gap-3 py-3"
+                onClick={() => setSelectedManager(mgr)}
+              >
+                <div className="list-avatar manager" style={{ width: 36, height: 36, fontSize: '0.9rem', flexShrink: 0 }}>
+                  {mgr.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="fw-medium">{mgr.name}</div>
+                  <div className="small text-muted">{mgr.department || mgr.email || 'Gestor'}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function AppSidebar({ title, user, items, activeMenu, onSelect, onLogout, alertCount = 0, avatarClass = 'admin-avatar' }) {
+  return (
+    <aside className="admin-sidebar text-white p-4">
+      <div className="d-flex align-items-center gap-2 mb-4">
+        <img src={logo} alt="CyberBox" width="34" height="34" />
+        <strong className="fs-5">{title}</strong>
+      </div>
+
+      <div className="admin-profile mb-4">
+        <div className={avatarClass}>{user.nome.charAt(0).toUpperCase()}</div>
+        <div>
+          <div>{user.nome}</div>
+          <div className="small text-white-50">{roleLabels[user.perfil]}</div>
+        </div>
+      </div>
+
+      <div className="admin-menu">
+        {items.map((item) => (
+          <button key={item.id} className={`btn admin-menu-btn ${activeMenu === item.id ? 'active' : ''}`} onClick={() => onSelect(item.id)}>
+            {item.label}
+            {item.id === 'alerts' && alertCount ? <span className="admin-badge">{alertCount}</span> : null}
+          </button>
+        ))}
+      </div>
+
+      <button className="btn btn-outline-light w-100 mt-4" onClick={onLogout}>Sair</button>
+    </aside>
+  );
+}
+
+export function DashboardLayout({ user, title, subtitle, menuItems, activeMenu, onSelectMenu, onLogout, children, alertCount = 0, avatarClass }) {
+  return (
+    <div className="admin-shell">
+      <AppSidebar
+        title="CyberBoxSecurity"
+        user={user}
+        items={menuItems}
+        activeMenu={activeMenu}
+        onSelect={onSelectMenu}
+        onLogout={onLogout}
+        alertCount={alertCount}
+        avatarClass={avatarClass}
+      />
+
+      <div className="admin-main">
+        <header className="admin-header px-4 px-md-5 py-4">
+          <div>
+            <h2 className="mb-1">{title}</h2>
+            <p className="text-muted mb-0">{subtitle}</p>
+          </div>
+        </header>
+        <main className="p-4 p-md-5">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+export function exportCSV(headers, rows, filename) {
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [headers.map(esc).join(','), ...rows.map((r) => r.map(esc).join(','))];
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function openExecutiveReport(summary, generatedAt) {
+  const fmt = (n) => String(n ?? 0);
+  const date = new Date(generatedAt).toLocaleString('pt-PT');
+  const html = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<title>Relatório Executivo — CyberBoxSecurity</title>
+<style>
+  body{font-family:Arial,sans-serif;margin:40px;color:#1a1a2e}
+  h1{color:#1b3f9a;border-bottom:3px solid #1b3f9a;padding-bottom:8px}
+  h2{color:#1b3f9a;margin-top:32px;font-size:1.1rem;text-transform:uppercase;letter-spacing:.05em}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  th{background:#1b3f9a;color:#fff;padding:8px 12px;text-align:left}
+  td{padding:8px 12px;border-bottom:1px solid #e2e8f0}
+  tr:nth-child(even) td{background:#f8fafc}
+  .kpi{display:inline-block;background:#f1f5f9;border-left:4px solid #1b3f9a;padding:12px 20px;margin:6px;min-width:160px}
+  .kpi-value{font-size:2rem;font-weight:700;color:#1b3f9a}
+  .kpi-label{font-size:.8rem;color:#64748b;text-transform:uppercase}
+  .footer{margin-top:48px;font-size:.8rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
+  @media print{body{margin:20px}.no-print{display:none}}
+</style>
+</head>
+<body>
+<div class="no-print" style="margin-bottom:24px">
+  <button onclick="window.print()" style="background:#1b3f9a;color:#fff;border:none;padding:10px 24px;border-radius:4px;cursor:pointer;font-size:1rem">Imprimir / Guardar como PDF</button>
+</div>
+<h1>Relatório Executivo — CyberBoxSecurity</h1>
+<p style="color:#64748b">Gerado a: <strong>${date}</strong></p>
+
+<h2>Utilizadores e Organizações</h2>
+<div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.utilizadores.total)}</div><div class="kpi-label">Utilizadores</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.utilizadores.gestores)}</div><div class="kpi-label">Gestores</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.utilizadores.admins)}</div><div class="kpi-label">Administradores</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.empresas.total)}</div><div class="kpi-label">Empresas</div></div>
+</div>
+
+<h2>Tickets de Suporte</h2>
+<div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.tickets.total)}</div><div class="kpi-label">Total</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.tickets.abertos)}</div><div class="kpi-label">Abertos</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.tickets.emCurso)}</div><div class="kpi-label">Em Curso</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.tickets.fechados)}</div><div class="kpi-label">Fechados</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.tickets.taxaResolucao)}%</div><div class="kpi-label">Taxa de Resolução</div></div>
+</div>
+<table style="margin-top:16px;max-width:400px">
+  <tr><th>Prioridade</th><th>Tickets</th></tr>
+  <tr><td>Alta</td><td>${fmt(summary.tickets.prioridadeAlta)}</td></tr>
+  <tr><td>Crítica</td><td>${fmt(summary.tickets.prioridadeCritica)}</td></tr>
+</table>
+
+<h2>Atividade de Autenticação (hoje)</h2>
+<div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.logs.totalHoje)}</div><div class="kpi-label">Eventos</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.logs.loginsFalhadosHoje)}</div><div class="kpi-label">Logins Falhados</div></div>
+  <div class="kpi"><div class="kpi-value">${fmt(summary.logs.registosHoje)}</div><div class="kpi-label">Novos Registos</div></div>
+</div>
+
+<div class="footer">CyberBoxSecurity — Documento gerado automaticamente. Para uso interno.</div>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+}
