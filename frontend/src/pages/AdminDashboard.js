@@ -850,3 +850,169 @@ export default function AdminDashboard({ user, onLogout }) {
             })() : <div className="text-center py-5 text-muted">Sem dados disponíveis.</div>}
           </div>
         ) : null}
+
+        {activeMenu === 'users' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Todos os Utilizadores</h3>
+                  <p className="text-muted small mb-0">Utilizadores ativos no sistema</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowAddUserDialog(true)}>Adicionar Utilizador</button>
+              </div>
+              <div className="d-grid gap-3">
+                {users.map((item) => (
+                  <div className="admin-list-row" key={item.id}>
+                    <div className="list-avatar user">{item.name.charAt(0)}</div>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">{item.name}</div>
+                      <div className="small text-muted">{item.email}</div>
+                      <div className="small text-muted">Utilizador: {item.username}</div>
+                      {item.managerId ? (
+                        <div className="small text-muted">Gestor: {managers.find((mgr) => mgr.id === item.managerId)?.name || 'ID ' + item.managerId}</div>
+                      ) : null}
+                    </div>
+                    <span className="badge text-bg-secondary">{item.role}</span>
+                    <div className="small text-muted">{item.lastActive}</div>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(item)}>Ver Detalhes</button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => deleteUser(item.id)}>Eliminar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'managers' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Todos os Gestores</h3>
+                  <p className="text-muted small mb-0">Gestores ativos e as suas equipas</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowAddManagerDialog(true)}>Adicionar Gestor</button>
+              </div>
+              <div className="d-grid gap-3">
+                {managers.map((item) => (
+                  <div className="admin-list-row" key={item.id}>
+                    <div className="list-avatar manager">{item.name.charAt(0)}</div>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">{item.name}</div>
+                      <div className="small text-muted">{item.email}</div>
+                      <div className="small text-muted">Utilizador: {item.username}</div>
+                      <div className="small text-muted">Departamento: {item.username}</div>
+                    </div>
+                    <div className="text-center small"><div className="text-muted">Equipa</div><div className="fw-semibold">{item.team}</div></div>
+                    <div className="text-center small"><div className="text-muted">Resolvidos</div><div className="fw-semibold">{item.incidentsResolved}</div></div>
+                    <div className="text-center small"><div className="text-muted">Performance</div><div className="fw-semibold text-success">{item.performance}%</div></div>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(item)}>Ver Detalhes</button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => deleteManager(item.id)}>Eliminar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+{activeMenu === 'alerts' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <h3 className="h5 mb-1">Todos os Alertas</h3>
+              <p className="text-muted small mb-4">Histórico completo de alertas de segurança</p>
+              <div className="d-grid gap-3">
+                {alerts.map((alert) => (
+                  <div className="alert-row" key={alert.id}>
+                    <span className={`alert-dot ${alert.type === 'Crítico' ? 'critical' : alert.type === 'Aviso' ? 'warning' : 'info'}`} />
+                    <div className="flex-grow-1">
+                      <div>{alert.message}</div>
+                      <div className="small text-muted mt-1">{alert.source} • {alert.time}</div>
+                    </div>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(alert)}>Investigar</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'logs' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h3 className="h5 mb-0">Logs de Autenticação e Registo</h3>
+                <div className="d-flex gap-2">
+                  {[
+                    { value: 'todos', label: 'Todos' },
+                    { value: 'login', label: 'Login' },
+                    { value: 'user', label: 'Registo' },
+                    { value: 'manager', label: 'Gestores' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      className={`btn btn-sm ${logsFilter === value ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => setLogsFilter(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => setLogsFilter(logsFilter)}
+                    title="Atualizar"
+                  >
+                    &#x21bb;
+                  </button>
+                </div>
+              </div>
+              {logsLoading ? (
+                <div className="text-center py-4 text-muted">A carregar logs...</div>
+              ) : logs.length === 0 ? (
+                <div className="text-center py-4 text-muted">Sem logs para este filtro.</div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table align-middle table-hover">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Data/Hora</th>
+                        <th>Origem</th>
+                        <th>Utilizador</th>
+                        <th>Evento</th>
+                        <th>Nível</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.map((log) => {
+                        const nivelBadge = log.nivel === 'Info'
+                          ? 'text-bg-success'
+                          : log.nivel === 'Aviso'
+                          ? 'text-bg-warning'
+                          : 'text-bg-danger';
+                        const dt = new Date(log.created_at);
+                        const dateStr = dt.toLocaleDateString('pt-PT');
+                        const timeStr = dt.toLocaleTimeString('pt-PT');
+                        return (
+                          <tr key={log.id_log}>
+                            <td className="text-nowrap small">
+                              <div>{dateStr}</div>
+                              <div className="text-muted">{timeStr}</div>
+                            </td>
+                            <td><span className="badge text-bg-secondary">{log.origem}</span></td>
+                            <td className="small">{log.actor_username || '—'}</td>
+                            <td>{log.evento}</td>
+                            <td><span className={`badge ${nivelBadge}`}>{log.nivel}</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
