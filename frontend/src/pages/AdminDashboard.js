@@ -238,3 +238,75 @@ export default function AdminDashboard({ user, onLogout }) {
       setApiMessage(error.response?.data?.message || 'Não foi possível criar empresa.');
     }
   };
+
+  const addUser = async () => {
+    if (!newUserData.name.trim() || !newUserData.username.trim() || !newUserData.password.trim()) return;
+    try {
+      const response = await api.post('/users', {
+        nome: newUserData.name.trim(),
+        username: newUserData.username.trim(),
+        password: newUserData.password.trim(),
+        email: newUserData.email.trim(),
+        telefone: newUserData.phone.trim(),
+        departamento: newUserData.department.trim(),
+        managerId: newUserData.managerId || null,
+      });
+      setUsers((current) => [response.data.data, ...current]);
+      setNewUserData({ name: '', username: '', password: '', email: '', phone: '', department: '', managerId: '' });
+      setShowAddUserDialog(false);
+      setApiMessage('Utilizador criado com sucesso. Já pode iniciar sessão com as credenciais definidas.');
+    } catch (error) {
+      setApiMessage(error.response?.data?.message || 'Não foi possível criar o utilizador.');
+    }
+  };
+
+  const addManager = async () => {
+    if (!newManagerData.name.trim() || !newManagerData.username.trim() || !newManagerData.password.trim()) return;
+    try {
+      const response = await api.post('/users/managers', {
+        nome: newManagerData.name.trim(),
+        username: newManagerData.username.trim(),
+        password: newManagerData.password.trim(),
+        email: newManagerData.email.trim(),
+        telefone: newManagerData.phone.trim(),
+        departamento: newManagerData.department.trim(),
+        teamSize: newManagerData.teamSize,
+      });
+      setManagers((current) => [response.data.data, ...current]);
+      setNewManagerData({ name: '', username: '', password: '', email: '', phone: '', department: '', teamSize: '' });
+      setShowAddManagerDialog(false);
+      setApiMessage('Gestor criado com sucesso. Já pode iniciar sessão com as credenciais definidas.');
+    } catch (error) {
+      setApiMessage(error.response?.data?.message || 'Não foi possível criar o gestor.');
+    }
+  };
+  
+  const deleteUser = async (id) => {
+    try {
+      await api.delete(`/users/${id}`);
+      setUsers((current) => current.filter((entry) => entry.id !== id));
+      setApiMessage('Utilizador eliminado com sucesso.');
+    } catch (error) {
+      setApiMessage(error.response?.data?.message || 'Não foi possível eliminar o utilizador.');
+    }
+  };
+
+  const deleteManager = async (id) => {
+    try {
+      await api.delete(`/users/managers/${id}`);
+      setManagers((current) => current.filter((entry) => entry.id !== id));
+      setApiMessage('Gestor eliminado com sucesso.');
+    } catch (error) {
+      setApiMessage(error.response?.data?.message || 'Não foi possível eliminar o gestor.');
+    }
+  };
+
+  const resolveTicket = async (id) => {
+    try {
+      const response = await api.put(`/tickets/${id}/status`, { estado: 'Resolvido' });
+      setTickets((current) => current.map((entry) => (entry.id === id ? response.data.data : entry)));
+      setApiMessage('Ticket marcado como resolvido com sucesso.');
+    } catch (error) {
+      setApiMessage(error.response?.data?.message || 'Nao foi possivel marcar o ticket como resolvido.');
+    }
+  };
