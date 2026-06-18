@@ -1016,3 +1016,83 @@ export default function AdminDashboard({ user, onLogout }) {
             </div>
           </div>
         ) : null}
+
+        {activeMenu === 'reports' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Relatórios</h3>
+                  <p className="text-muted small mb-0">Exportação de dados operacionais em CSV e relatório executivo imprimível</p>
+                </div>
+              </div>
+              <div className="d-grid gap-3">
+                {[
+                  {
+                    tipo: 'executivo',
+                    nome: 'Relatório Executivo',
+                    descricao: 'Sumário consolidado de utilizadores, tickets e autenticação',
+                    badge: 'HTML',
+                    badgeColor: 'text-bg-primary',
+                    btnLabel: 'Abrir',
+                  },
+                  {
+                    tipo: 'utilizadores',
+                    nome: 'Utilizadores',
+                    descricao: 'Lista completa de utilizadores com estado e tickets',
+                    badge: 'CSV',
+                    badgeColor: 'text-bg-success',
+                    btnLabel: 'Exportar',
+                  },
+                  {
+                    tipo: 'gestores',
+                    nome: 'Gestores',
+                    descricao: 'Lista de gestores com departamento e dimensão de equipa',
+                    badge: 'CSV',
+                    badgeColor: 'text-bg-success',
+                    btnLabel: 'Exportar',
+                  },
+                  {
+                    tipo: 'tickets',
+                    nome: 'Tickets de Suporte',
+                    descricao: 'Histórico de tickets com prioridade, estado e responsável',
+                    badge: 'CSV',
+                    badgeColor: 'text-bg-success',
+                    btnLabel: 'Exportar',
+                  },
+                  {
+                    tipo: 'logs',
+                    nome: 'Logs de Autenticação',
+                    descricao: 'Histórico de logins e registos (últimos 500 eventos)',
+                    badge: 'CSV',
+                    badgeColor: 'text-bg-success',
+                    btnLabel: 'Exportar',
+                  },
+                ].map(({ tipo, nome, descricao, badge, badgeColor, btnLabel }) => (
+                  <div className="settings-row" key={tipo}>
+                    <div>
+                      <div className="fw-medium">{nome}</div>
+                      <div className="small text-muted">{descricao}</div>
+                    </div>
+                    <div className="d-flex gap-2 align-items-center">
+                      <span className={`badge ${badgeColor}`}>{badge}</span>
+                      <button
+                        className="btn btn-outline-primary btn-sm"
+                        disabled={reportLoading === tipo}
+                        onClick={() => handleExportReport(tipo)}
+                      >
+                        {reportLoading === tipo ? 'A gerar...' : btnLabel}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'chat' ? <AdminChatSection user={user} managers={managers} /> : null}
+      </DashboardLayout>
+    </>
+  );
+}
