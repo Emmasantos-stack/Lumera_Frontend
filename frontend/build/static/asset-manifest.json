@@ -1,0 +1,14 @@
+{
+  "files": {
+    "main.css": "/static/css/main.4bcce895.css",
+    "main.js": "/static/js/main.9b028b7b.js",
+    "static/media/logo-cyberbox.png": "/static/media/logo-cyberbox.17fb4828a0083af69bf9.png",
+    "index.html": "/index.html",
+    "main.4bcce895.css.map": "/static/css/main.4bcce895.css.map",
+    "main.9b028b7b.js.map": "/static/js/main.9b028b7b.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.4bcce895.css",
+    "static/js/main.9b028b7b.js"
+  ]
+}
