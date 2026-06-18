@@ -2441,3 +2441,113 @@ function UserDashboard({ user, onLogout }) {
                 </div>
               </div>
             </div>
+            
+  <div className="card shadow-sm border-0">
+              <div className="card-body">
+                <h3 className="h5 mb-3">Dicas de Segurança</h3>
+                <div className="row g-3">
+                  {[
+                    ['Use senhas fortes', 'Combine letras maiúsculas, minúsculas, números e símbolos.'],
+                    ['Ative a autenticação de dois fatores', 'Adicione uma camada extra de segurança às suas contas.'],
+                    ['Não partilhe informações sensíveis', 'Nunca envie senhas ou dados confidenciais por email.'],
+                    ['Mantenha o software atualizado', 'Instale atualizações de segurança regularmente.'],
+                  ].map(([title, description]) => (
+                    <div className="col-md-6" key={title}>
+                      <div className="detail-box">
+                        <div className="fw-medium">{title}</div>
+                        <div className="small text-muted">{description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {activeMenu === 'tickets' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h3 className="h5 mb-1">Meus Tickets</h3>
+                  <p className="text-muted small mb-0">Gerir todos os seus pedidos de suporte</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowNewTicketDialog(true)}>Criar Novo Ticket</button>
+              </div>
+              <div className="d-grid gap-3">
+                {ticketsList.map((ticket) => (
+                  <div className="admin-list-row" key={ticket.id}>
+                    <div className="flex-grow-1">
+                      <div className="fw-medium">#{ticket.id} - {ticket.title}</div>
+                      <div className="small text-muted">Prioridade: {ticket.priority} • Atualizado: {ticket.updated}</div>
+                    </div>
+                    <span className="badge text-bg-secondary">{ticket.status}</span>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedItem(ticket)}>Ver Detalhes</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeMenu === 'chat' ? <UserChatSection user={user} /> : null}
+
+        {activeMenu === 'help' ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <h3 className="h5 mb-3">Centro de Ajuda</h3>
+              <div className="d-grid gap-3">
+                {[
+                  ['Como reportar um incidente de segurança?', 'Crie um novo ticket com prioridade Alta e descreva detalhadamente o incidente.'],
+                ].map(([question, answer]) => (
+                  <details className="detail-box" key={question}>
+                    <summary>{question}</summary>
+                    <p className="small text-muted mt-3 mb-0">{answer}</p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </DashboardLayout>
+    </>
+  );
+}
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
+
+  if (!user) {
+    return (
+      <>
+        <HomeScreen onOpenLogin={() => setShowLogin(true)} />
+        <LoginModal show={showLogin} onClose={() => setShowLogin(false)} onLogin={(loggedUser) => { setUser(loggedUser); setShowLogin(false); }} />
+      </>
+    );
+  }
+
+  if (user.perfil === 'admin') {
+    return <AdminDashboard user={user} onLogout={() => setUser(null)} />;
+  }
+
+  if (user.perfil === 'manager') {
+    return <ManagerDashboard user={user} onLogout={() => setUser(null)} />;
+  }
+
+  return <UserDashboard user={user} onLogout={() => setUser(null)} />;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+          
