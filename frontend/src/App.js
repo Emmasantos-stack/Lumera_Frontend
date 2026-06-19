@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import axios from 'axios';
 import logo from './assets/logo-cyberbox.png';
-
-const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+import api from './api';
 
 const roleLabels = {
   admin: 'Administrador',
@@ -231,65 +229,6 @@ function DetailModal({ item, title, onClose }) {
   );
 }
 
-function ChatSection({ user }) {
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [chatError, setChatError] = useState('');
-
-  useEffect(() => {
-    const loadMessages = async () => {
-      try {
-        const response = await api.get('/chat?room=global');
-        setMessages(response.data.data || []);
-        setChatError('');
-      } catch (error) {
-        setChatError(error.response?.data?.message || 'Nao foi possivel carregar o chat.');
-      }
-    };
-
-    loadMessages();
-  }, []);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-    try {
-      const response = await api.post('/chat', {
-        senderId: user.id,
-        senderName: user.nome,
-        senderRole: user.perfil,
-        room: 'global',
-        message: message.trim(),
-      });
-      setMessages((current) => [...current, response.data.data]);
-      setMessage('');
-      setChatError('');
-    } catch (error) {
-      setChatError(error.response?.data?.message || 'Nao foi possivel enviar a mensagem.');
-    }
-  };
-
-  return (
-    <div className="card shadow-sm border-0">
-      <div className="card-body">
-        <h3 className="h5 mb-3">Chat Operacional</h3>
-        {chatError ? <div className="alert alert-danger py-2">{chatError}</div> : null}
-        <div className="chat-box mb-3">
-          {messages.map((item) => (
-            <div className="chat-bubble" key={item.id}>
-              <div className="small text-muted mb-1">{item.author}</div>
-              <div>{item.text}</div>
-            </div>
-          ))}
-        </div>
-        <form className="d-flex gap-2" onSubmit={submit}>
-          <input className="form-control" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Escreva uma mensagem" />
-          <button className="btn btn-primary" type="submit">Enviar</button>
-        </form>
-      </div>
-    </div>
-  );
-}
 function PrivateChatBox({ user, room, partnerName }) {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
